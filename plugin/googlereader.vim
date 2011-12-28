@@ -1,7 +1,7 @@
 "=============================================================================
 " File: googlereader.vim
 " Author: Yasuhiro Matsumoto <mattn.jp@gmail.com>
-" Last Change: 12-May-2011.
+" Last Change: 28-Dec-2011.
 " Version: 2.2
 " WebPage: http://github.com/mattn/googlereader-vim
 " Usage:
@@ -267,7 +267,7 @@ function! s:SetReaded(sid, auth, token, id, readed)
   return s:doHttp("https://www.google.com/reader/api/0/edit-tag", {}, opt, {"Cookie": "SID=".a:sid, "Authorization": "GoogleLogin auth=".a:auth}, 0)
 endfunction
 
-function! s:GetEntries(email, passwd, opt)
+function! s:GetEntries(status, email, passwd, opt)
   if !exists("s:sid")
     let ret = split(s:doHttp("https://www.google.com/accounts/ClientLogin", {}, {"accountType": "HOSTED_OR_GOOGLE", "Email": a:email, "Passwd": a:passwd, "source": "googlereader.vim", "service": "reader"}, {}, 0), "\n")
 	let s:sid = substitute(ret[0], "^SID=", "", "")
@@ -293,7 +293,7 @@ function! s:GetEntries(email, passwd, opt)
   if len(opt["xt"]) == 0
     call remove(opt, "xt")
   endif
-  let feed = s:doHttp("https://www.google.com/reader/atom/user/-/state/com.google/reading-list", opt, {}, {"Cookie": "SID=".s:sid."; T=".s:token, "Authorization": "GoogleLogin auth=".s:auth}, 0)
+  let feed = s:doHttp("https://www.google.com/reader/atom/user/-/state/com.google/".a:status, opt, {}, {"Cookie": "SID=".s:sid."; T=".s:token, "Authorization": "GoogleLogin auth=".s:auth}, 0)
   let feed = iconv(feed, "utf-8", &encoding)
   let feed = substitute(feed, '<', "\r<", 'g')
   let feed = substitute(feed, '\(<entry[^>]*>.\{-}</entry>\)', '\=substitute(submatch(1), "[\r\n]", "", "g")', 'g')
@@ -474,7 +474,7 @@ function! s:ToggleReaded()
   endif
 endfunction
 
-function! s:ShowEntries(opt)
+function! s:ShowEntries(status, opt)
   if exists("g:googlereader_email")
     let email = g:googlereader_email
   else
@@ -485,7 +485,7 @@ function! s:ShowEntries(opt)
   else
     let passwd = inputsecret('GoogleReader password:')
   endif
-    
+
   if len(email) == 0 || len(passwd) == 0
     echohl WarningMsg
     echo "authentication required for GoogleReader."
@@ -520,9 +520,9 @@ function! s:ShowEntries(opt)
   if len(a:opt['xt'])
     echo "reading unread entries..."
   else
-    echo "reading full entries..."
+    echo "reading ".(a:status == 'reading-list' ? 'full' : a:status)." entries..."
   endif
-  let s:entries = s:GetEntries(email, passwd, a:opt)
+  let s:entries = s:GetEntries(a:status, email, passwd, a:opt)
   let cnt = 1
   for l:entry in s:entries
     let source = s:truncate(l:entry['source'], 20)
@@ -531,13 +531,15 @@ function! s:ShowEntries(opt)
   endfor
   setlocal nomodifiable
   syntax match SpecialKey /^\d\+:/he=e-1
-  exec 'nnoremap <silent> <buffer> <cr>  :call <SID>ShowEntry()<cr>'
-  exec 'nnoremap <silent> <buffer> r     :call <SID>ShowEntries({})<cr>'
-  exec 'nnoremap <silent> <buffer> <s-a> :call <SID>ShowEntries({"xt": "user/-/state/com.google/read"})<cr>'
-  exec 'nnoremap <silent> <buffer> <c-a> :call <SID>ShowEntries({"xt": ""})<cr>'
-  exec 'nnoremap <silent> <buffer> +     :call <SID>ToggleReaded()<cr>'
-  exec 'nnoremap <silent> <buffer> *     :call <SID>ToggleStarred()<cr>'
-  exec 'nnoremap <silent> <buffer> ?     :call <SID>Help()<cr>'
+  exec 'nnoremap <silent> <buffer> <cr> :call <SID>ShowEntry()<cr>'
+  exec 'nnoremap <silent> <buffer> r    :call <SID>ShowEntries("fresh", {"xt": ""})<cr>'
+  exec 'nnoremap <silent> <buffer> a    :call <SID>ShowEntries("reading-list", {"xt": ""})<cr>'
+  exec 'nnoremap <silent> <buffer> b    :call <SID>ShowEntries("broadcast", {"xt": ""})<cr>'
+  exec 'nnoremap <silent> <buffer> s    :call <SID>ShowEntries("starred", {"xt": ""})<cr>'
+  exec 'nnoremap <silent> <buffer> u    :call <SID>ShowEntries("reading-list", {"xt": "user/-/state/com.google/read"})<cr>'
+  exec 'nnoremap <silent> <buffer> +    :call <SID>ToggleReaded()<cr>'
+  exec 'nnoremap <silent> <buffer> *    :call <SID>ToggleStarred()<cr>'
+  exec 'nnoremap <silent> <buffer> ?    :call <SID>Help()<cr>'
   nnoremap <silent> <buffer> <c-n> j
   nnoremap <silent> <buffer> <c-p> k
   nnoremap <silent> <buffer> q :bw!<cr>
@@ -555,11 +557,13 @@ function! s:Help()
   echo '<c-n>     : goto next and open entry'
   echo '<c-p>     : goto prev and open entry'
   echo '<cr>      : show the entry'
-  echo '<c-a>     : show all list'
-  echo '<s-a>     : show unread list'
+  echo 'a         : show all list'
+  echo 'b         : show broadcast list'
+  echo 's         : show starred list'
+  echo 'u         : show unread list'
   echo '+         : toggle read/unread mark'
   echo '*         : toggle star/unstar mark'
-  echo 'r         : reload entries'
+  echo 'r         : fresh entries'
   echo 'q         : close window'
   echohl Title
   echo '[CONTENT]'
@@ -576,7 +580,7 @@ function! s:Help()
 endfunction
 
 function! s:GoogleReader()
-  call s:ShowEntries({"xt": ""})
+  call s:ShowEntries("reading-list", {"xt": "user/-/state/com.google/read"})
 endfunction
 
 command! GoogleReader call s:GoogleReader()
