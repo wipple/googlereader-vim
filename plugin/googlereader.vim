@@ -1,7 +1,7 @@
 "=============================================================================
 " File: googlereader.vim
 " Author: Yasuhiro Matsumoto <mattn.jp@gmail.com>
-" Last Change: 28-Dec-2011.
+" Last Change: 29-Dec-2011.
 " Version: 2.2
 " WebPage: http://github.com/mattn/googlereader-vim
 " Usage:
@@ -532,7 +532,6 @@ function! s:ShowEntries(status, opt)
   setlocal nomodifiable
   syntax match SpecialKey /^\d\+:/he=e-1
   exec 'nnoremap <silent> <buffer> <cr> :call <SID>ShowEntry()<cr>'
-  exec 'nnoremap <silent> <buffer> r    :call <SID>ShowEntries("fresh", {"xt": ""})<cr>'
   exec 'nnoremap <silent> <buffer> a    :call <SID>ShowEntries("reading-list", {"xt": ""})<cr>'
   exec 'nnoremap <silent> <buffer> b    :call <SID>ShowEntries("broadcast", {"xt": ""})<cr>'
   exec 'nnoremap <silent> <buffer> s    :call <SID>ShowEntries("starred", {"xt": ""})<cr>'
@@ -563,7 +562,6 @@ function! s:Help()
   echo 'u         : show unread list'
   echo '+         : toggle read/unread mark'
   echo '*         : toggle star/unstar mark'
-  echo 'r         : fresh entries'
   echo 'q         : close window'
   echohl Title
   echo '[CONTENT]'
