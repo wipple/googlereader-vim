@@ -1,7 +1,7 @@
 "=============================================================================
 " File: googlereader.vim
 " Author: Yasuhiro Matsumoto <mattn.jp@gmail.com>
-" Last Change: 29-Dec-2011.
+" Last Change: 06-Jan-2012.
 " Version: 2.2
 " WebPage: http://github.com/mattn/googlereader-vim
 " Usage:
@@ -270,12 +270,10 @@ endfunction
 function! s:GetEntries(status, email, passwd, opt)
   if !exists("s:sid")
     let ret = split(s:doHttp("https://www.google.com/accounts/ClientLogin", {}, {"accountType": "HOSTED_OR_GOOGLE", "Email": a:email, "Passwd": a:passwd, "source": "googlereader.vim", "service": "reader"}, {}, 0), "\n")
-	let s:sid = substitute(ret[0], "^SID=", "", "")
-	let s:auth = substitute(ret[2], "^Auth=", "", "")
+    let s:sid = substitute(ret[0], "^SID=", "", "")
+    let s:auth = substitute(ret[2], "^Auth=", "", "")
   endif
-  if !exists("s:token")
-    let s:token = s:doHttp("https://www.google.com/reader/api/0/token", {"client": "googlereader.vim", "ck": localtime()*1000}, {}, {"Cookie": "SID=".s:sid, "Authorization": "GoogleLogin auth=".s:auth}, 0)
-  endif
+  let s:token = s:doHttp("https://www.google.com/reader/api/0/token", {"client": "googlereader.vim", "ck": localtime()*1000}, {}, {"Cookie": "SID=".s:sid, "Authorization": "GoogleLogin auth=".s:auth}, 0)
   if s:sid == '' || s:sid =~ '^Error=BadAuthentication'
     echoerr "GoogleReader: bad authentication"
     let s:sid = ''
